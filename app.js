@@ -371,18 +371,43 @@ function getConditionClass(faceStr) {
 function setupSwipe() {
     var viewport = $('#cards-viewport');
 
+    var touchStartY = 0;
+    var touchDeltaY = 0;
+    var directionLocked = false; // 'h' for horizontal, 'v' for vertical
+
     viewport.addEventListener('touchstart', function (e) {
         touchStartX = e.touches[0].clientX;
-        isSwiping = true;
-        $('#cards-track').classList.add('swiping');
+        touchStartY = e.touches[0].clientY;
+        touchDeltaX = 0;
+        touchDeltaY = 0;
+        directionLocked = false;
+        isSwiping = false;
     }, { passive: true });
 
     viewport.addEventListener('touchmove', function (e) {
-        if (!isSwiping) return;
         touchDeltaX = e.touches[0].clientX - touchStartX;
-        var offset = -(currentDay * window.innerWidth) + touchDeltaX;
-        $('#cards-track').style.transform = 'translateX(' + offset + 'px)';
-    }, { passive: true });
+        touchDeltaY = e.touches[0].clientY - touchStartY;
+
+        // Lock direction on first significant movement
+        if (!directionLocked) {
+            if (Math.abs(touchDeltaX) > 10 || Math.abs(touchDeltaY) > 10) {
+                if (Math.abs(touchDeltaX) > Math.abs(touchDeltaY)) {
+                    directionLocked = 'h';
+                    isSwiping = true;
+                    $('#cards-track').classList.add('swiping');
+                } else {
+                    directionLocked = 'v';
+                }
+            }
+        }
+
+        // Only move cards track for horizontal swipes
+        if (directionLocked === 'h') {
+            e.preventDefault();
+            var offset = -(currentDay * window.innerWidth) + touchDeltaX;
+            $('#cards-track').style.transform = 'translateX(' + offset + 'px)';
+        }
+    }, { passive: false });
 
     viewport.addEventListener('touchend', function () {
         if (!isSwiping) return;
