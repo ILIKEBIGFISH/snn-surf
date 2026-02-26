@@ -51,7 +51,6 @@ body {
   display: flex;
   flex-direction: column;
   padding-top: var(--safe-top);
-  padding-bottom: var(--safe-bottom);
   max-height: 100dvh;
 }
 
@@ -257,8 +256,8 @@ body {
   background: var(--bg-section);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 12px 14px;
-  margin-bottom: 8px;
+  padding: 10px 14px 8px;
+  margin-bottom: 6px;
 }
 
 .shore-header {
@@ -345,13 +344,7 @@ body {
   color: var(--text-dim);
 }
 
-/* Conditions */
-.shore-conditions {
-  font-size: 0.68rem;
-  color: var(--text-dim);
-  margin-top: 4px;
-  font-style: italic;
-}
+
 
 /* ---- Fishing Priority Highlighting ---- */
 

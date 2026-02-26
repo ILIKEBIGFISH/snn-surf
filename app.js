@@ -339,10 +339,7 @@ function buildShoreSection(shore, data) {
         html += '</span></div>';
     }
 
-    // Conditions
-    if (data.conditions) {
-        html += '<div class="shore-conditions">' + data.conditions + '</div>';
-    }
+
 
     html += '</div></div>';
     return html;
