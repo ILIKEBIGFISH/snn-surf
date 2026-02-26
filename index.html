@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="SNN Surf">
   <meta name="theme-color" content="#0a1628">
-  <meta name="description" content="Live surf, wind, and tide reports for Oahu, Hawaii — powered by Surf News Network">
+  <meta name="description" content="Oahu fishing and diving surf, wind, and tide conditions">
 
-  <title>SNN Surf — Oahu Surf Report</title>
+  <title>Oahu Surf — Fishing & Diving Report</title>
 
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -19,119 +19,63 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
 
-  <!-- Pull-to-refresh indicator -->
-  <div id="pull-indicator" class="pull-indicator">
-    <svg class="refresh-icon" viewBox="0 0 24 24" width="24" height="24">
-      <path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
-    </svg>
-    <span>Pull to refresh</span>
-  </div>
-
   <!-- Header -->
-  <header class="app-header">
-    <div class="header-content">
-      <div class="header-top">
-        <div class="logo-group">
-          <div class="wave-icon">🌊</div>
-          <div>
-            <h1>SNN Surf</h1>
-            <p class="subtitle">Oahu Surf Report</p>
-          </div>
-        </div>
-        <button id="refresh-btn" class="refresh-btn" aria-label="Refresh data">
-          <svg viewBox="0 0 24 24" width="22" height="22">
-            <path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
-          </svg>
-        </button>
+  <header id="app-header">
+    <div class="header-left">
+      <img src="icons/icon-192.png" alt="Oahu Surf" class="header-logo">
+      <div>
+        <h1 class="header-title">Oahu Surf</h1>
+        <p class="header-subtitle">Fishing & Diving Report</p>
       </div>
-      <div class="last-updated">
-        <span id="update-time">Loading...</span>
-      </div>
+    </div>
+    <div class="header-right">
+      <span id="update-time" class="update-time"></span>
+      <button id="refresh-btn" class="refresh-btn" aria-label="Refresh">⟳</button>
     </div>
   </header>
 
-  <!-- Main Content -->
-  <main class="app-main">
+  <!-- Loading State -->
+  <div id="loading-screen" class="state-screen">
+    <div class="loader"></div>
+    <p>Fetching conditions...</p>
+  </div>
 
-    <!-- Loading State -->
-    <div id="loading-screen" class="loading-screen">
-      <div class="loader">
-        <div class="wave-loader">
-          <span></span><span></span><span></span><span></span><span></span>
-        </div>
-        <p>Fetching surf conditions...</p>
+  <!-- Error State -->
+  <div id="error-screen" class="state-screen hidden">
+    <p id="error-message">Unable to load data</p>
+    <button id="retry-btn" class="retry-btn">Try Again</button>
+  </div>
+
+  <!-- Main Content: Swipeable Day Cards -->
+  <main id="content" class="hidden">
+    <!-- Day Navigation -->
+    <div id="day-nav" class="day-nav">
+      <button id="prev-day" class="nav-arrow" aria-label="Previous day">‹</button>
+      <div id="day-label" class="day-label">Loading...</div>
+      <button id="next-day" class="nav-arrow" aria-label="Next day">›</button>
+    </div>
+
+    <!-- Swipe Container -->
+    <div id="cards-viewport" class="cards-viewport">
+      <div id="cards-track" class="cards-track">
+        <!-- Day cards injected by JS -->
       </div>
     </div>
 
-    <!-- Error State -->
-    <div id="error-screen" class="error-screen hidden">
-      <div class="error-content">
-        <div class="error-icon">⚠️</div>
-        <h2>Unable to load data</h2>
-        <p id="error-message">Check your internet connection and try again.</p>
-        <button id="retry-btn" class="retry-btn">Try Again</button>
-      </div>
-    </div>
-
-    <!-- Data Content -->
-    <div id="content" class="content hidden">
-
-      <!-- Today's Observations -->
-      <section class="card obs-card" id="obs-section">
-        <div class="card-header">
-          <div class="card-icon">📋</div>
-          <h2>Today's Report</h2>
-        </div>
-        <div class="obs-date" id="obs-date"></div>
-        <div class="obs-summary" id="obs-summary"></div>
-        <div class="shore-reports" id="shore-reports"></div>
-      </section>
-
-      <!-- Wind Conditions -->
-      <section class="card wind-card" id="wind-section">
-        <div class="card-header">
-          <div class="card-icon">💨</div>
-          <h2>Wind</h2>
-        </div>
-        <div class="wind-data" id="wind-data"></div>
-      </section>
-
-      <!-- Tide Data -->
-      <section class="card tide-card" id="tide-section">
-        <div class="card-header">
-          <div class="card-icon">🌊</div>
-          <h2>Tides — Honolulu</h2>
-        </div>
-        <div class="tide-data" id="tide-data"></div>
-        <div class="tide-source">Data: NOAA Station 1612340</div>
-      </section>
-
-      <!-- Swell Forecasts -->
-      <section class="card forecast-card" id="forecast-section">
-        <div class="card-header">
-          <div class="card-icon">📊</div>
-          <h2>Swell Forecast</h2>
-        </div>
-        <div class="forecast-tabs" id="forecast-tabs">
-          <button class="tab active" data-shore="north">North</button>
-          <button class="tab" data-shore="west">West</button>
-          <button class="tab" data-shore="south">South</button>
-          <button class="tab" data-shore="east">East</button>
-        </div>
-        <div class="forecast-content" id="forecast-content"></div>
-      </section>
-
-      <!-- Attribution -->
-      <footer class="app-footer">
-        <p>Surf data from <a href="https://www.surfnewsnetwork.com" target="_blank" rel="noopener">Surf News Network</a></p>
-        <p>Tide data from <a href="https://tidesandcurrents.noaa.gov" target="_blank" rel="noopener">NOAA Tides & Currents</a></p>
-      </footer>
-
-    </div>
+    <!-- Dot Indicators -->
+    <div id="dot-indicators" class="dot-indicators"></div>
   </main>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <p>Data from <a href="https://www.surfnewsnetwork.com" target="_blank">Surf News Network</a>
+      &amp; <a href="https://tidesandcurrents.noaa.gov" target="_blank">NOAA</a></p>
+  </footer>
 
   <script src="app.js"></script>
 </body>
+
 </html>
