@@ -34,28 +34,23 @@
   box-sizing: border-box;
 }
 
-html {
-  height: 100%;
-  background: var(--bg-deep);
-}
-
+html,
 body {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: calc(-1 * var(--safe-bottom));
-  display: flex;
-  flex-direction: column;
-  padding-top: var(--safe-top);
-  padding-bottom: var(--safe-bottom);
+  height: 100%;
+  margin: 0;
+  padding: 0;
   overflow: hidden;
-  font-family: 'Inter', -apple-system, system-ui, sans-serif;
   background: var(--bg-deep);
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
   color: var(--text);
   -webkit-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
 }
 
 /* ---- Header ---- */
