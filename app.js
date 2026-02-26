@@ -201,10 +201,12 @@ function parseWindForecast(doc) {
 // --- Fetch NOAA Tides ---
 async function fetchTideData() {
     var today = new Date();
+    var endDay = new Date(today);
+    endDay.setDate(endDay.getDate() + 6);
 
     var params = new URLSearchParams({
         begin_date: formatDateParam(today),
-        end_date: formatDateParam(today),
+        end_date: formatDateParam(endDay),
         station: HONOLULU_STATION,
         product: 'predictions', datum: 'MLLW',
         time_zone: 'lst_ldt', interval: 'hilo',
@@ -217,6 +219,40 @@ async function fetchTideData() {
     return data.predictions || [];
 }
 
+// Group tides by date, showing first 3 entries + next high tide
+function groupTidesByDay(allTides) {
+    if (!allTides || allTides.length === 0) return {};
+
+    // Build a map of date -> array of tides
+    var byDate = {};
+    for (var i = 0; i < allTides.length; i++) {
+        var td = allTides[i];
+        var dateStr = td.t.split(' ')[0]; // 'YYYY-MM-DD'
+        if (!byDate[dateStr]) byDate[dateStr] = [];
+        byDate[dateStr].push({ t: td.t, v: td.v, type: td.type, index: i });
+    }
+
+    // For each date, take first 3 entries, then find the next high tide
+    var result = {};
+    var dates = Object.keys(byDate).sort();
+    for (var d = 0; d < dates.length; d++) {
+        var dayTides = byDate[dates[d]];
+        var entries = dayTides.slice(0, 3);
+
+        // Find the next high tide after entry #3
+        var lastIdx = dayTides.length > 2 ? dayTides[2].index : dayTides[dayTides.length - 1].index;
+        for (var j = lastIdx + 1; j < allTides.length; j++) {
+            if (allTides[j].type === 'H') {
+                entries.push({ t: allTides[j].t, v: allTides[j].v, type: allTides[j].type });
+                break;
+            }
+        }
+
+        result[dates[d]] = entries;
+    }
+    return result;
+}
+
 // ============================================
 // BUILD DAY CARDS
 // ============================================
@@ -224,6 +260,10 @@ async function fetchTideData() {
 function buildDayCards(snn, tides) {
     var track = $('#cards-track');
     track.innerHTML = '';
+
+    // Group tides by date
+    var tidesByDate = groupTidesByDay(tides);
+    var tideDates = Object.keys(tidesByDate).sort();
 
     // Determine how many days we have (use north shore as reference)
     var shores = ['north', 'east', 'south', 'west'];
@@ -265,12 +305,13 @@ function buildDayCards(snn, tides) {
                 '</div>';
         }
 
-        // Tides (today only)
-        if (d === 0 && tides && tides.length > 0) {
+        // Tides for this day
+        var dayTides = tideDates[d] ? tidesByDate[tideDates[d]] : null;
+        if (dayTides && dayTides.length > 0) {
             html += '<div class="info-section">' +
                 '<div class="info-section-title">🌊 Tides — Honolulu</div>';
-            for (var t = 0; t < tides.length; t++) {
-                var td = tides[t];
+            for (var t = 0; t < dayTides.length; t++) {
+                var td = dayTides[t];
                 var isHigh = td.type === 'H';
                 html += '<div class="tide-row">' +
                     '<span class="tide-icon ' + (isHigh ? 'high' : 'low') + '">' + (isHigh ? '▲' : '▼') + '</span>' +
@@ -280,11 +321,6 @@ function buildDayCards(snn, tides) {
                     '</div>';
             }
             html += '</div>';
-        } else if (d > 0) {
-            html += '<div class="info-section">' +
-                '<div class="info-section-title">🌊 Tides</div>' +
-                '<div style="font-size:0.72rem;color:var(--text-dim);">Available for today only</div>' +
-                '</div>';
         }
 
         card.innerHTML = html;
