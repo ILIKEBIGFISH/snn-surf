@@ -349,8 +349,7 @@ function buildShoreSection(shore, data) {
 
     // Header
     html += '<div class="shore-header">' +
-        '<span class="shore-name">' + name + ' Shore' +
-        '<span class="fish-badge">✓ Fishable</span></span>' +
+        '<span class="shore-name">' + name + ' Shore</span>' +
         '<span class="shore-trend">' + (data.primary.trend || '') + '</span>' +
         '</div>';
 
@@ -402,7 +401,7 @@ function getConditionClass(faceStr) {
 
     if (maxHeight <= 2) return 'condition-flat';
     if (maxHeight <= 4) return 'condition-fair';
-    if (maxHeight >= 8) return 'condition-rough';
+    if (maxHeight >= 8) return '';
     return '';
 }
 
