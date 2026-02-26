@@ -362,17 +362,20 @@ function buildShoreSection(shore, data) {
     if (data.primary.period) html += '<span>' + data.primary.period + (data.primary.dir ? ' ' + data.primary.dir : '') + '</span>';
     html += '</div></div>';
 
-    // Secondary swell
+    // Secondary swell — always show for consistent spacing
+    html += '<div class="secondary-row">' +
+        '<span class="secondary-label">2nd</span>';
     if (data.secondary && data.secondary.face && data.secondary.trend !== 'None') {
-        html += '<div class="secondary-row">' +
-            '<span class="secondary-label">2nd</span>' +
-            '<span class="secondary-face">' + data.secondary.face + ' ft</span>' +
+        html += '<span class="secondary-face">' + data.secondary.face + ' ft</span>' +
             '<span class="secondary-meta">';
         if (data.secondary.period) html += data.secondary.period;
         if (data.secondary.dir) html += ' ' + data.secondary.dir;
         if (data.secondary.trend) html += ' · ' + data.secondary.trend;
-        html += '</span></div>';
+        html += '</span>';
+    } else {
+        html += '<span class="secondary-meta" style="color:var(--text-dim);">None</span>';
     }
+    html += '</div>';
 
 
 
