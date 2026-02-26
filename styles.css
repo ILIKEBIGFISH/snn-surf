@@ -38,6 +38,7 @@ html,
 body {
   height: 100%;
   height: 100dvh;
+  height: -webkit-fill-available;
   overflow: hidden;
   font-family: 'Inter', -apple-system, system-ui, sans-serif;
   background: var(--bg-deep);
@@ -51,7 +52,6 @@ body {
   display: flex;
   flex-direction: column;
   padding-top: var(--safe-top);
-  max-height: 100dvh;
 }
 
 /* ---- Header ---- */
