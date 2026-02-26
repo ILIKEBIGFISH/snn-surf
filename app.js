@@ -219,11 +219,11 @@ async function fetchTideData() {
     return data.predictions || [];
 }
 
-// Group tides by date, showing first 3 entries + next high tide
+// Group tides by date: all tides for that calendar day + 1 extra from the next day
 function groupTidesByDay(allTides) {
     if (!allTides || allTides.length === 0) return {};
 
-    // Build a map of date -> array of tides
+    // Build a map of date -> array of tides (with global index)
     var byDate = {};
     for (var i = 0; i < allTides.length; i++) {
         var td = allTides[i];
@@ -232,20 +232,19 @@ function groupTidesByDay(allTides) {
         byDate[dateStr].push({ t: td.t, v: td.v, type: td.type, index: i });
     }
 
-    // For each date, take first 3 entries, then find the next high tide
+    // For each date, include ALL tides for that day + the very next tide after
     var result = {};
     var dates = Object.keys(byDate).sort();
     for (var d = 0; d < dates.length; d++) {
         var dayTides = byDate[dates[d]];
-        var entries = dayTides.slice(0, 3);
+        // Copy all tides for this calendar day
+        var entries = dayTides.map(function (td) { return { t: td.t, v: td.v, type: td.type }; });
 
-        // Find the next high tide after entry #3
-        var lastIdx = dayTides.length > 2 ? dayTides[2].index : dayTides[dayTides.length - 1].index;
-        for (var j = lastIdx + 1; j < allTides.length; j++) {
-            if (allTides[j].type === 'H') {
-                entries.push({ t: allTides[j].t, v: allTides[j].v, type: allTides[j].type });
-                break;
-            }
+        // Find the next tide after this day's last entry
+        var lastIdx = dayTides[dayTides.length - 1].index;
+        if (lastIdx + 1 < allTides.length) {
+            var next = allTides[lastIdx + 1];
+            entries.push({ t: next.t, v: next.v, type: next.type });
         }
 
         result[dates[d]] = entries;
