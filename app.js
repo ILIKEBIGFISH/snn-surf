@@ -17,6 +17,13 @@ var touchStartX = 0;
 var touchDeltaX = 0;
 var isSwiping = false;
 
+// Fix iOS standalone viewport height
+function fixViewportHeight() {
+    document.documentElement.style.setProperty('--real-vh', window.innerHeight + 'px');
+}
+fixViewportHeight();
+window.addEventListener('resize', fixViewportHeight);
+
 // --- Service Worker ---
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(function () { });
