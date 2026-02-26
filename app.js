@@ -400,7 +400,7 @@ function getConditionClass(faceStr) {
     if (rangeM) maxHeight = parseInt(rangeM[1]);
 
     if (maxHeight <= 2) return 'condition-flat';
-    if (maxHeight <= 4) return 'condition-fair';
+    if (maxHeight <= 4) return '';
     if (maxHeight >= 8) return '';
     return '';
 }
