@@ -44,10 +44,11 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: calc(-1 * var(--safe-bottom));
   display: flex;
   flex-direction: column;
   padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
   overflow: hidden;
   font-family: 'Inter', -apple-system, system-ui, sans-serif;
   background: var(--bg-deep);
