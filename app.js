@@ -7,6 +7,8 @@ var CORS_PROXY = 'https://corsproxy.io/?';
 var SNN_URL = 'https://www.surfnewsnetwork.com/';
 var NOAA_TIDE_URL = 'https://api.tidesandcurrents.noaa.gov/api/prod/datagetter';
 var HONOLULU_STATION = '1612340';
+var HONOLULU_LAT = 21.3069;
+var HONOLULU_LNG = -157.8583;
 
 function $(sel) { return document.querySelector(sel); }
 function $$(sel) { return document.querySelectorAll(sel); }
@@ -44,9 +46,10 @@ document.addEventListener('DOMContentLoaded', function () {
 async function loadAllData() {
     showLoading();
     try {
-        var results = await Promise.allSettled([fetchSNNData(), fetchTideData()]);
+        var results = await Promise.allSettled([fetchSNNData(), fetchTideData(), fetchSunData()]);
         var snn = results[0].status === 'fulfilled' ? results[0].value : null;
         var tides = results[1].status === 'fulfilled' ? results[1].value : null;
+        window._sunData = results[2].status === 'fulfilled' ? results[2].value : {};
 
         if (!snn) throw new Error('Could not load surf data.');
 
@@ -224,6 +227,43 @@ async function fetchTideData() {
     if (!response.ok) throw new Error('Tide fetch failed');
     var data = await response.json();
     return data.predictions || [];
+}
+
+// Fetch sunrise/sunset for 5 days
+async function fetchSunData() {
+    var sunMap = {};
+    var today = new Date();
+    var fetches = [];
+
+    for (var i = 0; i < 5; i++) {
+        var d = new Date(today);
+        d.setDate(d.getDate() + i);
+        var dateStr = formatDateParam(d);
+        fetches.push({ dateStr: dateStr, url: 'https://api.sunrise-sunset.org/json?lat=' + HONOLULU_LAT + '&lng=' + HONOLULU_LNG + '&date=' + dateStr + '&formatted=0' });
+    }
+
+    var results = await Promise.allSettled(fetches.map(function (f) { return fetch(f.url).then(function (r) { return r.json(); }); }));
+
+    for (var j = 0; j < results.length; j++) {
+        if (results[j].status === 'fulfilled' && results[j].value.status === 'OK') {
+            var r = results[j].value.results;
+            sunMap[fetches[j].dateStr] = {
+                sunrise: formatSunTime(r.sunrise),
+                sunset: formatSunTime(r.sunset)
+            };
+        }
+    }
+    return sunMap;
+}
+
+// Convert ISO UTC timestamp to local 12h format
+function formatSunTime(isoStr) {
+    var d = new Date(isoStr);
+    var h = d.getHours();
+    var m = d.getMinutes();
+    var ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return h + ':' + (m < 10 ? '0' : '') + m + ' ' + ampm;
 }
 
 // Group tides by date: all tides for that calendar day + 1 extra from the next day
@@ -499,10 +539,23 @@ function goToDay(index) {
 }
 
 function updateDayLabel(index) {
-    // We'll store day labels when building cards
+    // Day name
     var labels = window._dayLabels || [];
     var label = labels[index] || 'Day ' + (index + 1);
-    $('#day-label').textContent = label;
+    $('#day-name').textContent = label;
+
+    // Sun times
+    var sunData = window._sunData || {};
+    var today = new Date();
+    var targetDate = new Date(today);
+    targetDate.setDate(targetDate.getDate() + index);
+    var dateKey = formatDateParam(targetDate);
+    var sun = sunData[dateKey];
+    if (sun) {
+        $('#sun-times').textContent = '☀ ' + sun.sunrise + ' — ' + sun.sunset;
+    } else {
+        $('#sun-times').textContent = '';
+    }
 }
 
 function buildDots() {
