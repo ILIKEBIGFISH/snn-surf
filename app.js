@@ -374,7 +374,11 @@ function buildDayCards(snn, tides) {
         var today = new Date();
         var targetDate = new Date(today);
         targetDate.setDate(targetDate.getDate() + d);
-        var weatherKey = formatDateParam(targetDate);
+        // NWS keys use 'YYYY-MM-DD' format
+        var wy = targetDate.getFullYear();
+        var wm = String(targetDate.getMonth() + 1).padStart(2, '0');
+        var wd = String(targetDate.getDate()).padStart(2, '0');
+        var weatherKey = wy + '-' + wm + '-' + wd;
         var wx = weatherData[weatherKey];
 
         html += '<div class="info-section">' +
