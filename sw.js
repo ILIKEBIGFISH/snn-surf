@@ -1,4 +1,4 @@
-const CACHE_NAME = 'snn-surf-v10';
+const CACHE_NAME = 'snn-surf-v11';
 
 // Install: skip waiting to activate immediately
 self.addEventListener('install', (event) => {

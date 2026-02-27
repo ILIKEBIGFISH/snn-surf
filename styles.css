@@ -441,10 +441,29 @@ body {
   gap: 6px;
 }
 
-.wind-value {
-  font-size: 1.15rem;
-  font-weight: 700;
+.weather-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.weather-temp {
+  font-size: 1.3rem;
+  font-weight: 800;
   color: var(--text);
+}
+
+.weather-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.wind-value {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-dim);
 }
 
 .tide-row {

@@ -46,10 +46,11 @@ document.addEventListener('DOMContentLoaded', function () {
 async function loadAllData() {
     showLoading();
     try {
-        var results = await Promise.allSettled([fetchSNNData(), fetchTideData(), fetchSunData()]);
+        var results = await Promise.allSettled([fetchSNNData(), fetchTideData(), fetchSunData(), fetchWeatherData()]);
         var snn = results[0].status === 'fulfilled' ? results[0].value : null;
         var tides = results[1].status === 'fulfilled' ? results[1].value : null;
         window._sunData = results[2].status === 'fulfilled' ? results[2].value : {};
+        window._weatherData = results[3].status === 'fulfilled' ? results[3].value : {};
 
         if (!snn) throw new Error('Could not load surf data.');
 
@@ -266,6 +267,31 @@ function formatSunTime(isoStr) {
     return h + ':' + (m < 10 ? '0' : '') + m + ' ' + ampm;
 }
 
+// Fetch NWS weather forecast for Honolulu
+async function fetchWeatherData() {
+    var response = await fetch('https://api.weather.gov/gridpoints/HFO/155,147/forecast', {
+        headers: { 'Accept': 'application/geo+json', 'User-Agent': 'OahuSurf' }
+    });
+    if (!response.ok) throw new Error('Weather fetch failed');
+    var data = await response.json();
+    var periods = data.properties.periods;
+
+    // Map daytime periods by date
+    var weatherMap = {};
+    for (var i = 0; i < periods.length; i++) {
+        var p = periods[i];
+        if (!p.isDaytime) continue;
+        var dateStr = p.startTime.split('T')[0]; // 'YYYY-MM-DD'
+        if (!weatherMap[dateStr]) {
+            weatherMap[dateStr] = {
+                high: p.temperature,
+                shortForecast: p.shortForecast
+            };
+        }
+    }
+    return weatherMap;
+}
+
 // Group tides by date: all tides for that calendar day + 1 extra from the next day
 function groupTidesByDay(allTides) {
     if (!allTides || allTides.length === 0) return {};
@@ -342,14 +368,27 @@ function buildDayCards(snn, tides) {
             html += buildShoreSection(shore, data);
         }
 
-        // Wind
+        // Weather (wind + NWS conditions)
         var wind = snn.wind && snn.wind[d];
-        if (wind) {
-            html += '<div class="info-section">' +
-                '<div class="info-section-title">🌬 Wind</div>' +
-                '<div class="wind-value">' + wind.value + '</div>' +
+        var weatherData = window._weatherData || {};
+        var today = new Date();
+        var targetDate = new Date(today);
+        targetDate.setDate(targetDate.getDate() + d);
+        var weatherKey = formatDateParam(targetDate);
+        var wx = weatherData[weatherKey];
+
+        html += '<div class="info-section">' +
+            '<div class="info-section-title">⛅ Weather</div>';
+        if (wx) {
+            html += '<div class="weather-summary">' +
+                '<span class="weather-temp">' + wx.high + '°F</span>' +
+                '<span class="weather-desc">' + wx.shortForecast + '</span>' +
                 '</div>';
         }
+        if (wind) {
+            html += '<div class="wind-value">' + wind.value + '</div>';
+        }
+        html += '</div>';
 
         // Tides for this day
         var dayTides = tideDates[d] ? tidesByDate[tideDates[d]] : null;
