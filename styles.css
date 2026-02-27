@@ -290,6 +290,15 @@ body {
   color: var(--text-muted);
 }
 
+.shore-wx {
+  font-weight: 600;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  margin-left: 6px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .shore-trend {
   font-size: 0.7rem;
   font-weight: 500;

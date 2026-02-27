@@ -46,11 +46,11 @@ document.addEventListener('DOMContentLoaded', function () {
 async function loadAllData() {
     showLoading();
     try {
-        var results = await Promise.allSettled([fetchSNNData(), fetchTideData(), fetchSunData(), fetchWeatherData()]);
+        var results = await Promise.allSettled([fetchSNNData(), fetchTideData(), fetchSunData(), fetchShoreWeather()]);
         var snn = results[0].status === 'fulfilled' ? results[0].value : null;
         var tides = results[1].status === 'fulfilled' ? results[1].value : null;
         window._sunData = results[2].status === 'fulfilled' ? results[2].value : {};
-        window._weatherData = results[3].status === 'fulfilled' ? results[3].value : {};
+        window._shoreWeather = results[3].status === 'fulfilled' ? results[3].value : {};
 
         if (!snn) throw new Error('Could not load surf data.');
 
@@ -267,29 +267,53 @@ function formatSunTime(isoStr) {
     return h + ':' + (m < 10 ? '0' : '') + m + ' ' + ampm;
 }
 
-// Fetch NWS weather forecast for Honolulu
-async function fetchWeatherData() {
-    var response = await fetch('https://api.weather.gov/gridpoints/HFO/155,147/forecast', {
-        headers: { 'Accept': 'application/geo+json', 'User-Agent': 'OahuSurf' }
-    });
-    if (!response.ok) throw new Error('Weather fetch failed');
-    var data = await response.json();
-    var periods = data.properties.periods;
+// Fetch weather for each shore from Open-Meteo (batch)
+var SHORE_COORDS = {
+    north: { lat: 21.58, lng: -158.10 },  // Haleiwa
+    east: { lat: 21.39, lng: -157.74 },  // Kailua
+    south: { lat: 21.28, lng: -157.83 },  // Waikiki
+    west: { lat: 21.47, lng: -158.22 }   // Makaha
+};
+var SHORE_ORDER = ['north', 'east', 'south', 'west'];
 
-    // Map daytime periods by date
-    var weatherMap = {};
-    for (var i = 0; i < periods.length; i++) {
-        var p = periods[i];
-        if (!p.isDaytime) continue;
-        var dateStr = p.startTime.split('T')[0]; // 'YYYY-MM-DD'
-        if (!weatherMap[dateStr]) {
-            weatherMap[dateStr] = {
-                high: p.temperature,
-                shortForecast: p.shortForecast
-            };
+async function fetchShoreWeather() {
+    var lats = SHORE_ORDER.map(function (s) { return SHORE_COORDS[s].lat; }).join(',');
+    var lngs = SHORE_ORDER.map(function (s) { return SHORE_COORDS[s].lng; }).join(',');
+    var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lats +
+        '&longitude=' + lngs +
+        '&daily=temperature_2m_max,weather_code&timezone=Pacific/Honolulu&forecast_days=5&temperature_unit=fahrenheit';
+
+    var response = await fetch(url);
+    if (!response.ok) throw new Error('Shore weather fetch failed');
+    var data = await response.json();
+
+    // Map: shore -> date -> { temp, icon }
+    var result = {};
+    for (var i = 0; i < SHORE_ORDER.length; i++) {
+        var shore = SHORE_ORDER[i];
+        var d = data[i] || data;
+        result[shore] = {};
+        if (d.daily && d.daily.time) {
+            for (var j = 0; j < d.daily.time.length; j++) {
+                result[shore][d.daily.time[j]] = {
+                    temp: Math.round(d.daily.temperature_2m_max[j]),
+                    icon: weatherCodeToEmoji(d.daily.weather_code[j])
+                };
+            }
         }
     }
-    return weatherMap;
+    return result;
+}
+
+function weatherCodeToEmoji(code) {
+    if (code <= 1) return '☀️';
+    if (code <= 3) return '⛅';
+    if (code <= 48) return '🌫️';
+    if (code <= 55) return '🌦️';
+    if (code <= 65) return '🌧️';
+    if (code <= 75) return '❄️';
+    if (code <= 82) return '🌧️';
+    return '⛈️';
 }
 
 // Group tides by date: all tides for that calendar day + 1 extra from the next day
@@ -360,39 +384,29 @@ function buildDayCards(snn, tides) {
 
         var html = '';
 
-        // Shore forecasts
+        // Shore forecasts with weather
+        var shoreWeather = window._shoreWeather || {};
+        var today = new Date();
+        var targetDate = new Date(today);
+        targetDate.setDate(targetDate.getDate() + d);
+        var dateKey = targetDate.getFullYear() + '-' + String(targetDate.getMonth() + 1).padStart(2, '0') + '-' + String(targetDate.getDate()).padStart(2, '0');
+
         for (var si = 0; si < shores.length; si++) {
             var shore = shores[si];
             var data = snn.forecasts[shore] && snn.forecasts[shore][d];
             if (!data) continue;
-            html += buildShoreSection(shore, data);
+            var wx = shoreWeather[shore] && shoreWeather[shore][dateKey];
+            html += buildShoreSection(shore, data, wx);
         }
 
-        // Weather (wind + NWS conditions)
+        // Wind
         var wind = snn.wind && snn.wind[d];
-        var weatherData = window._weatherData || {};
-        var today = new Date();
-        var targetDate = new Date(today);
-        targetDate.setDate(targetDate.getDate() + d);
-        // NWS keys use 'YYYY-MM-DD' format
-        var wy = targetDate.getFullYear();
-        var wm = String(targetDate.getMonth() + 1).padStart(2, '0');
-        var wd = String(targetDate.getDate()).padStart(2, '0');
-        var weatherKey = wy + '-' + wm + '-' + wd;
-        var wx = weatherData[weatherKey];
-
-        html += '<div class="info-section">' +
-            '<div class="info-section-title">⛅ Weather</div>';
-        if (wx) {
-            html += '<div class="weather-summary">' +
-                '<span class="weather-temp">' + wx.high + '°F</span>' +
-                '<span class="weather-desc">' + wx.shortForecast + '</span>' +
+        if (wind) {
+            html += '<div class="info-section">' +
+                '<div class="info-section-title">🌬 Wind</div>' +
+                '<div class="wind-value">' + wind.value + '</div>' +
                 '</div>';
         }
-        if (wind) {
-            html += '<div class="wind-value">' + wind.value + '</div>';
-        }
-        html += '</div>';
 
         // Tides for this day
         var dayTides = tideDates[d] ? tidesByDate[tideDates[d]] : null;
@@ -420,7 +434,7 @@ function buildDayCards(snn, tides) {
     goToDay(0);
 }
 
-function buildShoreSection(shore, data) {
+function buildShoreSection(shore, data, wx) {
     var shoreNames = { north: 'North', east: 'East', south: 'South', west: 'West' };
     var name = shoreNames[shore] || shore;
 
@@ -430,9 +444,13 @@ function buildShoreSection(shore, data) {
     var html = '<div class="' + condClass + '">';
     html += '<div class="shore-section">';
 
-    // Header
+    // Header with weather
+    var weatherBit = '';
+    if (wx) {
+        weatherBit = '<span class="shore-wx">' + wx.temp + '°F ' + wx.icon + '</span>';
+    }
     html += '<div class="shore-header">' +
-        '<span class="shore-name">' + name + ' Shore</span>' +
+        '<span class="shore-name">' + name + ' Shore ' + weatherBit + '</span>' +
         '<span class="shore-trend">' + (data.primary.trend || '') + '</span>' +
         '</div>';
 
