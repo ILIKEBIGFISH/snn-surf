@@ -3,7 +3,7 @@
    Swipeable daily cards with all-shores view
    ============================================ */
 
-var CORS_PROXY = 'https://corsproxy.org/?url=';
+var CORS_PROXY = 'https://api.codetabs.com/v1/proxy?quest=';
 var SNN_URL = 'https://www.surfnewsnetwork.com/';
 var NOAA_TIDE_URL = 'https://api.tidesandcurrents.noaa.gov/api/prod/datagetter';
 var HONOLULU_STATION = '1612340';
