@@ -3,7 +3,7 @@
    Swipeable daily cards with all-shores view
    ============================================ */
 
-var CORS_PROXY = 'https://corsproxy.io/?';
+var CORS_PROXY = 'https://corsproxy.org/?url=';
 var SNN_URL = 'https://www.surfnewsnetwork.com/';
 var NOAA_TIDE_URL = 'https://api.tidesandcurrents.noaa.gov/api/prod/datagetter';
 var HONOLULU_STATION = '1612340';
@@ -68,9 +68,7 @@ async function loadAllData() {
 // ============================================
 
 async function fetchSNNData() {
-    var response = await fetch(CORS_PROXY + encodeURIComponent(SNN_URL), {
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    });
+    var response = await fetch(CORS_PROXY + encodeURIComponent(SNN_URL));
     if (!response.ok) throw new Error('Failed to fetch surf report');
 
     var html = await response.text();
